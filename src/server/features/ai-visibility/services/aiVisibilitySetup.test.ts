@@ -87,13 +87,11 @@ describe("manual prompt persistence without DataForSEO", () => {
     const saved = await saveTracker(input);
     expect(saved.state.tracker?.enabled).toBe(true);
     expect(saved.state.tracker?.nextCheckAt).toBeTruthy();
+    const before = await repo.getConfiguration(input.projectId);
     await saveTracker({ ...input, startPaused: true });
-    expect(
-      (await repo.getConfiguration(input.projectId))?.tracker,
-    ).toMatchObject({
-      enabled: true,
-      nextCheckAt: saved.state.tracker?.nextCheckAt,
-    });
+    expect((await repo.getConfiguration(input.projectId))?.tracker).toEqual(
+      before?.tracker,
+    );
     expect(workflow.create).not.toHaveBeenCalled();
   });
 
@@ -120,4 +118,31 @@ describe("manual prompt persistence without DataForSEO", () => {
     expect(await repo.getConfiguration("missing")).toBeNull();
     expect(workflow.create).not.toHaveBeenCalled();
   });
+});
+
+it("preserves a custom paused schedule and engines when manually adding prompts", async () => {
+  const saved = await saveTracker({
+    ...input,
+    engines: ["gemini"],
+    languageCode: "de",
+    locationCode: 2276,
+  });
+  if (!saved.state.tracker) throw new Error("Tracker was not saved");
+  await repo.updateTracker(saved.state.tracker.id, {
+    enabled: false,
+    scheduleInterval: "monthly",
+    nextCheckAt: "2026-12-31T06:00:00.000Z",
+    lastSkipReason: "previous notice",
+  });
+  const before = await repo.getConfiguration(input.projectId);
+  await saveTracker({
+    projectId: input.projectId,
+    startPaused: true,
+    prompts: [{ text: "Welche Produkte sind vegan?", topic: "Ernährung" }],
+  });
+  const after = await repo.getConfiguration(input.projectId);
+  expect(after?.tracker).toEqual(before?.tracker);
+  expect(after?.prompts.filter((p) => !p.archived)).toHaveLength(2);
+  expect(await repo.listRuns(input.projectId)).toEqual([]);
+  expect(workflow.create).not.toHaveBeenCalled();
 });

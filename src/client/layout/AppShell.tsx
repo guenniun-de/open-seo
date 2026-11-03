@@ -11,10 +11,8 @@ import {
 } from "@/client/layout/AppShellParts";
 import { GscReEngagementModal } from "@/client/features/gsc/GscReEngagementModal";
 import { Sidebar } from "@/client/components/Sidebar";
-import { BILLING_ROUTE } from "@/shared/billing";
 import { getSeoApiKeyStatus } from "@/serverFunctions/config";
 import { getLastProjectId } from "@/client/lib/active-project";
-import { dataforseoHelpLinkOptions } from "@/client/navigation/items";
 import {
   SidebarInset,
   SidebarProvider,
@@ -48,8 +46,14 @@ export function AuthenticatedAppLayout({
     ...aiTrackerQueryOptions(promptProjectId ?? ""),
     enabled: ready && Boolean(promptProjectId),
   });
-  const manualPromptPage =
-    Boolean(promptProjectId) && !promptTracker.data?.tracker?.enabled;
+  // Opt in only the features whose operation requires SEO-provider data.
+  // Google insights (GSC/GA4), integrations, reports and general app pages do
+  // not require DataForSEO; their own errors remain visible independently.
+  const requiresSeoProvider =
+    /^\/p\/[^/]+\/(?:keywords|domain|backlinks|rank-tracking|local-seo|brand-lookup|prompt-explorer|ai-visibility\/research)(?:\/|$)/.test(
+      location.pathname,
+    ) ||
+    (Boolean(promptProjectId) && promptTracker.data?.tracker?.enabled === true);
   const [showMissingSeoApiKeyModal, setShowMissingSeoApiKeyModal] =
     React.useState(false);
   // On non-project pages (e.g. /settings) there's no projectId in the URL, so
@@ -81,13 +85,8 @@ export function AuthenticatedAppLayout({
   // (a first visit to a page without a project in the URL).
   const sidebarProjectPending =
     sidebarProjectId === null && projectsQuery.isPending;
-  // The setup guide is where the modal and banners send the user, so it shows
-  // neither: a banner there would link to the page the user is already on.
   const shouldCheckSeoApiKeyStatus =
-    !manualPromptPage &&
-    seoWarningSuppressions === 0 &&
-    location.pathname !== BILLING_ROUTE &&
-    location.pathname !== dataforseoHelpLinkOptions.to;
+    ready && requiresSeoProvider && seoWarningSuppressions === 0;
   const seoApiKeyStatusQuery = useQuery({
     queryKey: ["seoApiKeyStatus"],
     queryFn: () => getSeoApiKeyStatus(),

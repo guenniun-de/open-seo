@@ -82,8 +82,9 @@ export function TrackerPromptFields({
       {topicPrompts.length > 0 &&
         topicPrompts.every((prompt) => prompt.paused) && (
           <p className="text-xs text-muted-foreground">
-            Every prompt in this topic is paused. Prompts you add here will
-            still run.
+            {state.tracker?.enabled
+              ? "Every prompt in this topic is paused. New prompts are active and will be included in scheduled checks; existing prompts stay paused."
+              : "Every prompt in this topic is paused. New prompts are saved without automatic collection while tracking is disabled; existing prompts stay paused."}
           </p>
         )}
       <Field aria-label="Prompts">

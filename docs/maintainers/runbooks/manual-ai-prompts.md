@@ -3,8 +3,9 @@
 ## Verhalten und Grenzen
 
 Der manuelle Einstieg unter AI Visibility → „Manage prompts without tracking“
-verwendet OpenRouter für bearbeitbare Entwürfe. Eigene Texte können auch ohne
-OpenRouter eingegeben werden. „Generate“ erzeugt nur Entwürfe; erst „Review
+verwendet OpenRouter für bearbeitbare Entwürfe. Im Editor können Texte auch von Hand eingegeben werden; der bestehende
+Zugang zum AI-Visibility-Bereich verlangt derzeit dennoch eine OpenRouter-
+Konfiguration. „Generate“ erzeugt nur Entwürfe; erst „Review
 prompts“ und „Save prompts without tracking“ speichern sie dauerhaft.
 
 Ein neuer manueller Tracker hat `enabled=false` und `nextCheckAt=null`. Speichern
@@ -18,8 +19,14 @@ Editor und Review erscheint „Prompts werden über OpenRouter generiert und ohn
 automatisches Tracking gespeichert.“ statt einer DataForSEO-Setup-Warnung.
 Die globalen Banner und das Setup-Modal stammen aus `AppShell.tsx`
 (`AuthenticatedAppLayout` → `SeoApiStatusBanners` / `MissingSeoSetupModal` in
-`AppShellParts.tsx`). Ihre Statusprüfung und Anzeige werden auf Prompt-Verwaltungs-
-und Detailseiten ohne aktiven Tracker ausgenommen. Solange der Tracker geladen
+`AppShellParts.tsx`). Statusprüfung, Banner und Setup-Modal werden nur für die
+abhängigen Bereiche Keyword Research, Domain Overview, Backlinks, Rank Tracking,
+Local SEO, Brand Lookup, Prompt Explorer und Prompt Research aktiviert. Auf
+Prompt-Verwaltungs- und Detailseiten gelten sie nur bei aktivem Tracker.
+GSC-/GA4-Auswertungen unter `search-performance`, Integrationen, Einstellungen,
+Reports, Kontext, Dashboard, Site Audit und SAM haben keine globale DataForSEO-
+Voraussetzung. Einzelne optionale Funktionen können weiterhin eigene Provider-
+Voraussetzungen prüfen. Solange der Tracker geladen
 wird, wird dort keine Provider-Voraussetzung unterstellt. Manuelle Dialoge
 unterdrücken die globalen Hinweise während ihrer Lebensdauer zusätzlich über
 einen React-Kontext, auch beim Laden oder bei Fehlern. Die Auswahl des manuellen
@@ -83,7 +90,7 @@ Im Checkout mit der gepinnten pnpm-Version:
 ```sh
 pnpm install --frozen-lockfile
 pnpm run types:check
-pnpm exec vitest run src/client/features/ai-visibility src/server/features/ai-visibility/services --maxWorkers=3
+pnpm exec vitest run src/client/layout/AppShell.test.ts src/client/features/ai-visibility src/server/features/ai-visibility/services --maxWorkers=3
 pnpm run build
 ```
 
@@ -184,3 +191,69 @@ Anschließend Typprüfung, relevante Tests, Image-Build und Staging mit wieder-
 hergestelltem Backup ausführen. Neu auftauchende Migrationen vor dem Upgrade
 bewerten. Erst nach Review einen neuen Image-Digest ausrollen; den vorherigen
 Tag und das Backup für den Rollback aufbewahren.
+
+## Review-Nachweise für PR #1 (2026-11-03)
+
+Die Review-Korrekturen auf `feature/manual-ai-prompts-review` betreffen:
+
+- Globale DataForSEO-Hinweise werden nach tatsächlicher Funktionsabhängigkeit
+  aktiviert. GSC/GA4 (`search-performance`), Integrationen und allgemeine Seiten
+  bleiben auch bei fehlendem Schlüssel oder fehlgeschlagener Providerstatus-
+  Prüfung ohne DataForSEO-Banner und -Setup-Modal. Die abhängigen SEO-Bereiche
+  behalten ihre Hinweise. Google-OAuth-Code und Verbindungen werden nicht geändert.
+- Bei vollständig pausierten Themen beschreibt der Editor neue Prompts nur bei
+  aktivem Tracker als Teil künftiger geplanter Checks. Bei deaktiviertem Tracker
+  nennt er ausdrücklich Speicherung ohne automatische Erfassung. Bestehende
+  pausierte Prompts werden durch das Hinzufügen nicht aktiviert.
+- Tests bestätigen, dass manuelles Speichern keine Workflow-Erstellung, keine
+  Runs und keine fällige Planung erzeugt. Für vorhandene Tracker wird die
+  gesamte gespeicherte Tracker-Konfiguration verglichen, einschließlich eines
+  individuellen pausierten Monatsplans, des nächsten Checks und der Engines.
+
+Tatsächlich lokal in dieser Cloud-Entwicklungsumgebung ausgeführt:
+
+| Prüfung                                                              | Ergebnis                                                                                                                           |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm run types:check`                                               | Erfolgreich                                                                                                                        |
+| Relevante Vitest-Suite aus dem Abschnitt oben                        | 23 Dateien, 142 Tests bestanden                                                                                                    |
+| `pnpm run test:ci --maxWorkers=3`                                    | 275 Dateien, 1.887 Tests bestanden; einschließlich vorhandener GSC-/GA4-Tests                                                      |
+| Typbewusster Oxlint für geänderte TypeScript-Dateien                 | Keine Fehler oder Warnungen                                                                                                        |
+| Vollständiger Standalone-Docker-Build, `linux/amd64`                 | Erfolgreich bis zum Runtime-Image; beide Stufen, Widgets, Client, Server und celld-Paket gebaut                                    |
+| Image-Smoke-Test als Benutzer `node`, ohne Netzwerk und ohne Volumes | celld 0.5.1, App-Artefakte und lesbare Startskripte geprüft; Syntaxprüfung von `configure.mjs` und `crawl-gateway.mjs` erfolgreich |
+
+Das lokale Testimage heißt `openseo-pr1-review:local`; seine Image-ID lautet
+`sha256:08db59977c3697d5a1612f2d3513ed0b4579926302b54c788ab2a602a2028270`.
+Dies ist eine lokale Image-ID, kein veröffentlichter Registry-Digest. Es wurde
+kein Image in eine Registry gepusht und keine Anwendung ausgerollt.
+
+Der unveränderte Build scheiterte zunächst beim Corepack-Download in der
+Cloud-Proxy-Umgebung. Für den erfolgreichen Build wurde nur in einer temporären
+Dockerfile-Kopie außerhalb des Repositorys die vorhandene öffentliche CA-Kette
+als BuildKit-Secret eingebunden: `NODE_EXTRA_CA_CERTS` und `CURL_CA_BUNDLE`
+verwiesen während der RUN-Schritte auf `/run/secrets/proxy_ca`. Die produktive
+Dockerfile blieb unverändert; TLS-, Paket- und celld-Prüfsummenprüfungen blieben
+aktiv. Die CA-Datei wurde nicht ins Runtime-Image übernommen.
+
+Ein erster Image-Smoke-Test deckte außerdem restriktive Cloud-Checkout-Modi
+(`0600`) in einem aus Arbeitsdateien erzeugten temporären Kontext auf. Nach
+Angleichung an die gespeicherten Git-Modi (`100644`/`100755`) wurden der
+**vollständige Build und der Smoke-Test erneut erfolgreich** ausgeführt. Deshalb
+für eigene Builds den oben gezeigten `git archive`-Kontext verwenden: Er
+übernimmt die Git-Dateimodi und enthält keine unversionierten lokalen Secrets.
+Der BuildKit-Hinweis zu `ENV AUTH_MODE=password` ist eine heuristische Warnung
+zum Variablennamen; der Wert ist der Authentifizierungsmodus, kein Passwort.
+
+Nicht nachgewiesen und vor produktiver Freigabe weiterhin in isoliertem Staging
+zu erledigen: echter OpenRouter-Durchlauf „Generieren → Bearbeiten → Review →
+Speichern → Reload“, Prüfung unveränderter Run-Anzahl sowie echte GSC-/GA4-
+Abfragen mit verbundenen Testkonten. In dieser Cloud-Umgebung sind weder
+OpenRouter- noch Google-Testzugänge konfiguriert. Die Generierung ist in Vitest
+simuliert, während Persistenz und Scheduling mit echten SQLite-Abfragen geprüft
+werden. Der Image-Smoke-Test ist kein vollständiger Standalone-Dienstetest mit
+S3-Speicher, Healthcheck und Browser. ARM64, Postgres und GitHub-Actions-Statuschecks
+wurden für diese Review-Korrekturen nicht separat verifiziert.
+
+Die Backup-, Freigabe-, Deployment- und Rollback-Schritte oben bleiben
+verbindlich. Insbesondere ersetzen lokale Testergebnisse weder das Review noch
+den Staging-Test. Keine produktiven Container, Volumes, Zugangsdaten oder
+OAuth-Verbindungen wurden für diese Prüfungen angefasst.

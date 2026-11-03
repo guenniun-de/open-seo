@@ -52,11 +52,20 @@ vi.mock("./AppShellParts", () => ({
 beforeEach(() => {
   location.pathname = "/p/project/ai-visibility";
 });
-function renderShell(enabled: boolean, providerConfigured = false) {
+function renderShell(
+  enabled: boolean,
+  providerConfigured = false,
+  providerError = false,
+) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   client.setQueryData(["seoApiKeyStatus"], { configured: providerConfigured });
+  if (providerError)
+    client
+      .getQueryCache()
+      .find({ queryKey: ["seoApiKeyStatus"] })
+      ?.setState({ status: "error", error: new Error("Status unavailable") });
   client.setQueryData<Pick<AiTrackerState, "tracker">>(
     aiTrackerQueryOptions("project").queryKey,
     {
@@ -105,6 +114,11 @@ it("retains global warnings for an active tracker", () => {
 });
 it.each([
   "/p/project/keywords",
+  "/p/project/domain",
+  "/p/project/backlinks",
+  "/p/project/rank-tracking/config",
+  "/p/project/local-seo/tracker",
+  "/p/project/brand-lookup",
   "/p/project/ai-visibility/research",
   "/p/project/prompt-explorer",
 ])("retains provider warnings for dependent research at %s", (path) => {
@@ -113,4 +127,32 @@ it.each([
 });
 it("does not warn when DataForSEO is configured", () => {
   expect(renderShell(true, true)).not.toContain("DataForSEO setup warning");
+});
+
+it.each([
+  "/p/project/search-performance", // GSC and GA4 insights share this page.
+  "/p/project/settings/integrations",
+  "/p/project/settings",
+  "/p/project/reports",
+  "/p/project/context",
+  "/p/project/sam",
+  "/p/project/audit",
+  "/p/project",
+  "/settings",
+  "/help/dataforseo-api-key",
+])(
+  "keeps provider-independent pages free of missing-key and status-error warnings at %s",
+  (path) => {
+    location.pathname = path;
+    for (const providerError of [false, true]) {
+      const html = renderShell(true, false, providerError);
+      expect(html).toContain("Prompt content");
+      expect(html).not.toContain("DataForSEO setup warning");
+      expect(html).not.toContain("Provider setup modal");
+    }
+  },
+);
+it("retains status-check errors for provider-backed features", () => {
+  location.pathname = "/p/project/keywords";
+  expect(renderShell(false, false, true)).toContain("DataForSEO setup warning");
 });

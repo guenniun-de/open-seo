@@ -43,8 +43,8 @@ function SeoApiStatusBanners({
             </>
           ) : (
             <>
-              Setup needed: add your DataForSEO API key to use OpenSEO features.
-              See the quick steps on the {helpLink}.
+              Setup needed: add your DataForSEO API key to use SEO data
+              features. See the quick steps on the {helpLink}.
             </>
           )}
         </AppBanner>
@@ -52,8 +52,8 @@ function SeoApiStatusBanners({
 
       {seoApiKeyStatusError ? (
         <AppBanner variant="info" icon={icon}>
-          We could not verify your DataForSEO setup. If features are not
-          working, check the setup steps on the {helpLink}.
+          We could not verify your DataForSEO setup. If SEO data features are
+          not working, check the setup steps on the {helpLink}.
         </AppBanner>
       ) : null}
     </>
@@ -125,7 +125,7 @@ function MissingSeoSetupModal({ onClose }: { onClose: () => void }) {
                   setup guide has the steps.
                 </>
               ) : (
-                "Add your DataForSEO API key to start using OpenSEO."
+                "Add your DataForSEO API key to use SEO data features."
               )}
             </DialogDescription>
           </div>
