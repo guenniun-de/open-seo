@@ -67,9 +67,11 @@ export const aiTrackerPatchSchema = z.object({
     .optional(),
   archivePromptIds: z.array(z.string().uuid()).max(100).optional(),
 });
-export const saveAiTrackerSchema = aiProjectSchema.extend(
-  aiTrackerPatchSchema.shape,
-);
+export const saveAiTrackerSchema = aiProjectSchema
+  .extend(aiTrackerPatchSchema.shape)
+  .extend({
+    startPaused: z.boolean().optional(),
+  });
 export const estimateAiCostSchema = aiProjectSchema.extend({
   scheduleInterval: scheduleIntervalSchema
     .optional()

@@ -1,6 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
+import { TrackerEditor, TrackerEditorMode } from "./TrackerEditor";
+import { useAiVisibilityTracker } from "./shared";
+import { DEFAULT_LOCATION_CODE } from "@/shared/keyword-locations";
 import { Alert, AlertDescription } from "@/client/components/ui/alert";
 import { Button } from "@/client/components/ui/button";
 import { Card, CardContent } from "@/client/components/ui/card";
@@ -35,6 +38,42 @@ import {
  * run lives on the server, so leaving or reloading the page finds it again.
  * Both paths end on the page that started setup.
  */
+function ManualTrackerSetup({
+  projectId,
+  onClose,
+  onSaved,
+}: {
+  projectId: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const tracker = useAiVisibilityTracker(projectId);
+  const projects = useQuery(projectsQueryOptions());
+
+  if (tracker.isPending || projects.isPending) return <SkeletonPageContent />;
+  if (tracker.isError)
+    return <AiQueryError error={tracker.error} retry={() => void tracker.refetch()} />;
+  if (projects.isError)
+    return <AiQueryError error={projects.error} retry={() => void projects.refetch()} />;
+
+  const project = projects.data.find((item) => item.id === projectId);
+
+  return (
+    <TrackerEditor
+      projectId={projectId}
+      state={tracker.data}
+      defaultMarket={{
+        locationCode: project?.locationCode ?? DEFAULT_LOCATION_CODE,
+        languageCode: project?.languageCode ?? "en",
+      }}
+      mode={TrackerEditorMode.Prompts}
+      startPaused
+      onClose={onClose}
+      onSaved={onSaved}
+    />
+  );
+}
+
 export function AiResearchSetupGate({
   projectId,
   children,
@@ -43,6 +82,7 @@ export function AiResearchSetupGate({
   children: ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const [manualSetup, setManualSetup] = useState(false);
   const setupOptions = aiResearchSetupQueryOptions(projectId);
   const setup = useQuery(setupOptions);
   const refresh = () =>
@@ -213,6 +253,15 @@ export function AiResearchSetupGate({
           )}
           <div className="space-y-3">
             <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => setManualSetup(true)}
+            >
+              Set up manually — without DataForSEO
+            </Button>
+            <Button
               size="lg"
               className="w-full"
               pending={saveOverview.isPending}
@@ -228,6 +277,16 @@ export function AiResearchSetupGate({
                 : "Research and a first run of your prompts use a small amount of usage credits."}
             </p>
           </div>
+          {manualSetup && (
+            <ManualTrackerSetup
+              projectId={projectId}
+              onClose={() => setManualSetup(false)}
+              onSaved={() => {
+                setManualSetup(false);
+                void refresh();
+              }}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

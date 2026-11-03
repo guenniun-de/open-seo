@@ -12,9 +12,11 @@ import type { TrackerSetupReviewData } from "./TrackerSetupReview";
 export function useTrackerSetupSave({
   projectId,
   onSaved,
+  startPaused = false,
 }: {
   projectId: string;
   onSaved: (state: AiTrackerState, run?: AiRun) => void;
+  startPaused?: boolean;
 }) {
   return useMutation({
     mutationFn: async ({
@@ -25,7 +27,7 @@ export function useTrackerSetupSave({
       scheduleWeekly: boolean;
     }) => {
       const result = await saveAiVisibilityTracker({
-        data: { projectId, ...accepted.patch },
+        data: { projectId, ...accepted.patch, ...(startPaused ? { startPaused: true } : {}) },
       });
       if (!scheduleWeekly) return { state: result.state };
       try {

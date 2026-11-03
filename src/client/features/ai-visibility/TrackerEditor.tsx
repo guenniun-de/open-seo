@@ -46,6 +46,7 @@ export function TrackerEditor({
   defaultMarket,
   mode,
   open = true,
+  startPaused = false,
   schedule,
   onManageTracking,
   onClose,
@@ -56,6 +57,8 @@ export function TrackerEditor({
   defaultMarket: ProjectMarket;
   mode: TrackerEditorMode;
   open?: boolean;
+  /** Create a new tracker without enabling automatic collection. */
+  startPaused?: boolean;
   /** Settings mode shows the tracking schedule above engines and country. */
   schedule?: ReactNode;
   onManageTracking?: () => void;
@@ -108,7 +111,7 @@ export function TrackerEditor({
     }),
     onSuccess: setReview,
   });
-  const save = useTrackerSetupSave({ projectId, onSaved });
+  const save = useTrackerSetupSave({ projectId, onSaved, startPaused });
   const form = useForm({
     defaultValues: { draft: defaultDraft },
     onSubmit: ({ value: { draft } }) => {
@@ -193,7 +196,7 @@ export function TrackerEditor({
             creating={!state.tracker}
             pending={save.isPending}
             error={save.error}
-            canSchedule={state.providerConfigured}
+            canSchedule={state.providerConfigured && !startPaused}
             scheduling={save.variables?.scheduleWeekly ?? false}
             onBack={() => {
               setReview(null);
@@ -202,9 +205,10 @@ export function TrackerEditor({
             onSave={() =>
               save.mutate({ accepted: review, scheduleWeekly: false })
             }
-            onSaveAndSchedule={() =>
-              save.mutate({ accepted: review, scheduleWeekly: true })
-            }
+            onSaveAndSchedule={() => {
+              if (!startPaused)
+                save.mutate({ accepted: review, scheduleWeekly: true });
+            }}
           />
         ) : (
           <form

@@ -5,13 +5,21 @@ import { getTracker } from "./aiVisibilityState";
 
 /** Creates or edits tracking. A new tracker starts weekly, first check a week out. */
 export async function saveTracker(input: SaveAiTrackerInput) {
-  const { projectId, ...patch } = input;
+  const { projectId, startPaused, ...patch } = input;
   const current = await repo.getConfiguration(projectId);
   const { rows, created, updated, skipped } = await projectPatch(
     projectId,
     patch,
     current,
   );
+
+  // Only a new tracker explicitly created in paused mode starts disabled.
+  // Existing trackers retain their current scheduling configuration.
+  if (!current && startPaused === true) {
+    rows.tracker.enabled = false;
+    rows.tracker.nextCheckAt = null;
+  }
+
   await repo.saveConfiguration(rows);
   return { state: await getTracker({ projectId }), created, updated, skipped };
 }
