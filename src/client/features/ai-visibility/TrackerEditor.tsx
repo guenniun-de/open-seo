@@ -30,9 +30,11 @@ import {
 import { TrackerPromptFields } from "./TrackerPromptFields";
 import {
   TrackerSetupReview,
+  TrackerSetupNotice,
   type TrackerSetupReviewData,
 } from "./TrackerSetupReview";
 import { AiQueryError } from "./shared";
+import { useSuppressSeoSetupWarnings } from "@/client/layout/SeoSetupWarningContext";
 import type { ProjectMarket } from "@/client/features/projects/types";
 
 export enum TrackerEditorMode {
@@ -67,7 +69,9 @@ export function TrackerEditor({
 }) {
   const adding = mode === TrackerEditorMode.Prompts;
   const manual =
-    startPaused || (!state.providerConfigured && !state.tracker?.enabled);
+    startPaused ||
+    (adding && !state.providerConfigured && !state.tracker?.enabled);
+  useSuppressSeoSetupWarnings(manual && open);
   const [generating, setGenerating] = useState(false);
   const [review, setReview] = useState<TrackerSetupReviewData | null>(null);
   const [validationError, setValidationError] = useState<Error | null>(null);
@@ -187,12 +191,10 @@ export function TrackerEditor({
           </p>
         )}
         {!adding && !review && schedule}
-        {!state.providerConfigured && (
-          <p className="rounded-lg bg-muted px-4 py-3 text-sm">
-            An administrator needs to configure the DataForSEO API key before we
-            can collect data.
-          </p>
-        )}
+        <TrackerSetupNotice
+          manual={manual}
+          providerConfigured={state.providerConfigured}
+        />
         {review ? (
           <TrackerSetupReview
             review={review}

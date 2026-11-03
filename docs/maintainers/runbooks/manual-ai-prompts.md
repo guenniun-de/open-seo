@@ -11,7 +11,25 @@ Ein neuer manueller Tracker hat `enabled=false` und `nextCheckAt=null`. Speicher
 startet weder Baseline noch Workflow noch DataForSEO-Aufruf. Die Bestätigung
 zeigt keine hypothetischen Tracking-Kosten und bietet keine Tracking-Aktion.
 Der Speicher-Hook verhindert Scheduling auch bei widersprüchlichen UI-Eingaben.
-Die Tracking-Kostenschätzung entfällt in diesem Ablauf. Ohne Provider wird auch
+Die Tracking-Kostenschätzung entfällt in diesem Ablauf.
+
+Provider-Hinweise folgen der tatsächlich ausgeführten Funktion: Im manuellen
+Editor und Review erscheint „Prompts werden über OpenRouter generiert und ohne
+automatisches Tracking gespeichert.“ statt einer DataForSEO-Setup-Warnung.
+Die globalen Banner und das Setup-Modal stammen aus `AppShell.tsx`
+(`AuthenticatedAppLayout` → `SeoApiStatusBanners` / `MissingSeoSetupModal` in
+`AppShellParts.tsx`). Ihre Statusprüfung und Anzeige werden auf Prompt-Verwaltungs-
+und Detailseiten ohne aktiven Tracker ausgenommen. Solange der Tracker geladen
+wird, wird dort keine Provider-Voraussetzung unterstellt. Manuelle Dialoge
+unterdrücken die globalen Hinweise während ihrer Lebensdauer zusätzlich über
+einen React-Kontext, auch beim Laden oder bei Fehlern. Die Auswahl des manuellen
+Einstiegs ersetzt die kostenpflichtige Einrichtungsansicht. Es wird kein CSS zum
+Verstecken von Warnungen verwendet.
+
+Bei aktiven Trackern sowie auf Keyword-, Prompt-Research- und Prompt-Explorer-
+Seiten bleiben die globalen Hinweise erhalten. Tracking-Einstellungen zeigen
+weiterhin die lokale DataForSEO-Warnung, wenn der Schlüssel fehlt. Bereits
+konfigurierte DataForSEO-Installationen behalten ihren bisherigen Ablauf. Ohne Provider wird auch
 beim späteren Hinzufügen von Prompts zu einem pausierten Tracker dieser Ablauf
 verwendet. Der nicht angeschlossene Tracking-Einstellungen-Link im manuellen
 Einstieg entfällt.

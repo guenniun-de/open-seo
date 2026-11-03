@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { TrackerSetupReview } from "./TrackerSetupReview";
+import { TrackerSetupReview, TrackerSetupNotice } from "./TrackerSetupReview";
 
 vi.mock("@/serverFunctions/ai-visibility", () => ({}));
 
@@ -67,4 +67,35 @@ describe("manual prompt review", () => {
     );
     expect(html.match(/ disabled=""/g)).toHaveLength(2);
   });
+});
+
+it.each([true, false])(
+  "shows neutral guidance in manual mode with provider=%s",
+  (providerConfigured) => {
+    const html = renderToStaticMarkup(
+      createElement(TrackerSetupNotice, { manual: true, providerConfigured }),
+    );
+    expect(html).toContain(
+      "Prompts werden über OpenRouter generiert und ohne automatisches Tracking gespeichert.",
+    );
+    expect(html).not.toContain("DataForSEO");
+  },
+);
+it("retains the provider warning for collection and hides it when configured", () => {
+  expect(
+    renderToStaticMarkup(
+      createElement(TrackerSetupNotice, {
+        manual: false,
+        providerConfigured: false,
+      }),
+    ),
+  ).toContain("DataForSEO");
+  expect(
+    renderToStaticMarkup(
+      createElement(TrackerSetupNotice, {
+        manual: false,
+        providerConfigured: true,
+      }),
+    ),
+  ).toBe("");
 });

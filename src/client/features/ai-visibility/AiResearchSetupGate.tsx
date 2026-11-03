@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
+import { useSuppressSeoSetupWarnings } from "@/client/layout/SeoSetupWarningContext";
 import { TrackerEditor, TrackerEditorMode } from "./TrackerEditor";
 import { useAiVisibilityTracker } from "./shared";
 import { DEFAULT_LOCATION_CODE } from "@/shared/keyword-locations";
@@ -47,6 +48,7 @@ function ManualTrackerSetup({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  useSuppressSeoSetupWarnings(true);
   const tracker = useAiVisibilityTracker(projectId);
   const projects = useQuery(projectsQueryOptions());
 
@@ -175,6 +177,22 @@ export function AiResearchSetupGate({
     // loadSetupResults only reads projectId, which keys this gate.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finishing]);
+  if (manualSetup)
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" onClick={() => setManualSetup(false)}>
+          Back to setup options
+        </Button>
+        <ManualTrackerSetup
+          projectId={projectId}
+          onClose={() => setManualSetup(false)}
+          onSaved={() => {
+            setManualSetup(false);
+            void refresh();
+          }}
+        />
+      </div>
+    );
   if (setup.isPending) return <SkeletonPageContent />;
   if (setup.isError)
     return (
@@ -295,16 +313,6 @@ export function AiResearchSetupGate({
                 : "Research and a first run of your prompts use a small amount of usage credits."}
             </p>
           </div>
-          {manualSetup && (
-            <ManualTrackerSetup
-              projectId={projectId}
-              onClose={() => setManualSetup(false)}
-              onSaved={() => {
-                setManualSetup(false);
-                void refresh();
-              }}
-            />
-          )}
         </CardContent>
       </Card>
     </div>

@@ -165,3 +165,27 @@ export function TrackerSetupReview({
     </div>
   );
 }
+
+/** Setup guidance follows the operation's dependency, not the missing key alone. */
+export function TrackerSetupNotice({
+  manual,
+  providerConfigured,
+}: {
+  manual: boolean;
+  providerConfigured: boolean;
+}) {
+  if (manual)
+    return (
+      <p className="rounded-lg bg-muted px-4 py-3 text-sm">
+        Prompts werden über OpenRouter generiert und ohne automatisches Tracking
+        gespeichert.
+      </p>
+    );
+  if (providerConfigured) return null;
+  return (
+    <p className="rounded-lg bg-muted px-4 py-3 text-sm">
+      An administrator needs to configure the DataForSEO API key before we can
+      collect data.
+    </p>
+  );
+}
