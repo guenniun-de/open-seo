@@ -66,6 +66,8 @@ export function TrackerEditor({
   onSaved: (state: AiTrackerState, run?: AiRun) => void;
 }) {
   const adding = mode === TrackerEditorMode.Prompts;
+  const manual =
+    startPaused || (!state.providerConfigured && !state.tracker?.enabled);
   const [generating, setGenerating] = useState(false);
   const [review, setReview] = useState<TrackerSetupReviewData | null>(null);
   const [validationError, setValidationError] = useState<Error | null>(null);
@@ -100,18 +102,20 @@ export function TrackerEditor({
   const prepare = useMutation({
     mutationFn: async (patch: AiTrackerPatch) => ({
       patch,
-      estimate: await estimateAiVisibilityCost({
-        // An unscheduled tracker is offered weekly tracking.
-        data: {
-          projectId,
-          patch,
-          scheduleInterval: state.tracker?.enabled ? undefined : "weekly",
-        },
-      }),
+      estimate: manual
+        ? null
+        : await estimateAiVisibilityCost({
+            // An unscheduled tracker is offered weekly tracking.
+            data: {
+              projectId,
+              patch,
+              scheduleInterval: state.tracker?.enabled ? undefined : "weekly",
+            },
+          }),
     }),
     onSuccess: setReview,
   });
-  const save = useTrackerSetupSave({ projectId, onSaved, startPaused });
+  const save = useTrackerSetupSave({ projectId, onSaved, startPaused: manual });
   const form = useForm({
     defaultValues: { draft: defaultDraft },
     onSubmit: ({ value: { draft } }) => {
@@ -194,9 +198,10 @@ export function TrackerEditor({
             review={review}
             enabled={Boolean(state.tracker?.enabled)}
             creating={!state.tracker}
+            startPaused={manual}
             pending={save.isPending}
             error={save.error}
-            canSchedule={state.providerConfigured && !startPaused}
+            canSchedule={state.providerConfigured && !manual}
             scheduling={save.variables?.scheduleWeekly ?? false}
             onBack={() => {
               setReview(null);
@@ -206,7 +211,7 @@ export function TrackerEditor({
               save.mutate({ accepted: review, scheduleWeekly: false })
             }
             onSaveAndSchedule={() => {
-              if (!startPaused)
+              if (!manual)
                 save.mutate({ accepted: review, scheduleWeekly: true });
             }}
           />
@@ -240,17 +245,19 @@ export function TrackerEditor({
                           onChange={field.handleChange}
                           onGeneratingChange={setGenerating}
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Manage the active AI engines and country in{" "}
-                          <button
-                            type="button"
-                            className="text-foreground underline underline-offset-4"
-                            onClick={onManageTracking}
-                          >
-                            Tracking settings
-                          </button>
-                          .
-                        </p>
+                        {onManageTracking && !manual && (
+                          <p className="text-xs text-muted-foreground">
+                            Manage the active AI engines and country in{" "}
+                            <button
+                              type="button"
+                              className="text-foreground underline underline-offset-4"
+                              onClick={onManageTracking}
+                            >
+                              Tracking settings
+                            </button>
+                            .
+                          </p>
+                        )}
                       </>
                     )}
                     {!adding && (

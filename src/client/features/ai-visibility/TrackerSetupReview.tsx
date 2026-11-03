@@ -8,12 +8,13 @@ import { AiQueryError, aiMoney } from "./shared";
 
 export type TrackerSetupReviewData = {
   patch: AiTrackerPatch;
-  estimate: AiCostEstimate;
+  estimate: AiCostEstimate | null;
 };
 
 export function TrackerSetupReview({
   review,
   enabled,
+  startPaused = false,
   creating,
   pending,
   error,
@@ -25,6 +26,7 @@ export function TrackerSetupReview({
 }: {
   review: TrackerSetupReviewData;
   enabled: boolean;
+  startPaused?: boolean;
   /** No tracker yet; saving creates one on the weekly schedule. */
   creating: boolean;
   pending: boolean;
@@ -36,15 +38,20 @@ export function TrackerSetupReview({
   onSaveAndSchedule: () => void;
 }) {
   const paused = !enabled && !creating;
+  const manual = startPaused;
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         Review your changes before saving.{" "}
-        {enabled
-          ? "These settings apply to your enabled schedule."
-          : creating
-            ? "Tracking runs weekly. The first check is a week from now; use Run now for results sooner."
-            : "Track weekly to collect fresh answers once a week. A tracker that has never run on a schedule also runs its first check now."}
+        {manual
+          ? enabled
+            ? "Saving does not start a new run or change the existing tracking schedule. This tracker is already enabled; its existing schedule remains active."
+            : "Save prompts without tracking. No automatic collection, baseline, or scheduled check will start. Saving prompts does not incur tracking charges."
+          : enabled
+            ? "These settings apply to your enabled schedule."
+            : creating
+              ? "Tracking runs weekly. The first check is a week from now; use Run now for results sooner."
+              : "Track weekly to collect fresh answers once a week. A tracker that has never run on a schedule also runs its first check now."}
       </p>
       <dl className="grid grid-cols-2 gap-4 rounded-lg border p-4 text-sm border-border">
         {review.patch.engines && (
@@ -97,17 +104,19 @@ export function TrackerSetupReview({
           ))}
         </div>
       )}
-      <div className="space-y-1 rounded-lg bg-muted/60 p-4 text-sm">
-        <p>
-          Each run collects <strong>{review.estimate.observations}</strong>{" "}
-          {review.estimate.observations === 1 ? "answer" : "answers"} for{" "}
-          <strong>{aiMoney(review.estimate.costUsd)}</strong>
-        </p>
-        <p>
-          <strong>{aiMoney(review.estimate.monthlyCostUsd)}</strong> estimated
-          per month if it runs {review.estimate.scheduleInterval}.
-        </p>
-      </div>
+      {!manual && review.estimate && (
+        <div className="space-y-1 rounded-lg bg-muted/60 p-4 text-sm">
+          <p>
+            Each run collects <strong>{review.estimate.observations}</strong>{" "}
+            {review.estimate.observations === 1 ? "answer" : "answers"} for{" "}
+            <strong>{aiMoney(review.estimate.costUsd)}</strong>
+          </p>
+          <p>
+            <strong>{aiMoney(review.estimate.monthlyCostUsd)}</strong> estimated
+            per month if it runs {review.estimate.scheduleInterval}.
+          </p>
+        </div>
+      )}
       {!!error && <AiQueryError error={error} />}
       <DialogFooter>
         <Button
@@ -120,24 +129,29 @@ export function TrackerSetupReview({
         </Button>
         <Button
           type="button"
-          variant={paused ? "secondary" : "default"}
+          variant={paused && !manual ? "secondary" : "default"}
           disabled={pending}
           onClick={onSave}
         >
           {pending && !scheduling && (
             <Loader2 className="size-4 animate-spin" />
           )}
-          {enabled
-            ? "Save reviewed changes"
-            : creating
-              ? "Save and track weekly"
-              : "Save as paused"}
+          {manual
+            ? "Save prompts without tracking"
+            : enabled
+              ? "Save reviewed changes"
+              : creating
+                ? "Save and track weekly"
+                : "Save as paused"}
         </Button>
-        {paused && (
+        {!manual && paused && (
           <Button
             type="button"
             disabled={
-              pending || !canSchedule || review.estimate.observations === 0
+              pending ||
+              !canSchedule ||
+              !review.estimate ||
+              review.estimate.observations === 0
             }
             onClick={onSaveAndSchedule}
           >

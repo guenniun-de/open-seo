@@ -86,9 +86,9 @@ export function TrackerPromptFields({
             still run.
           </p>
         )}
-      <Field aria-label="Prompts to track">
+      <Field aria-label="Prompts">
         <div className="flex items-center justify-between gap-3">
-          <FieldLabel htmlFor={`${promptsId}-0`}>Prompts to track</FieldLabel>
+          <FieldLabel htmlFor={`${promptsId}-0`}>Prompts</FieldLabel>
           <Button
             type="button"
             variant="outline"

@@ -52,9 +52,19 @@ function ManualTrackerSetup({
 
   if (tracker.isPending || projects.isPending) return <SkeletonPageContent />;
   if (tracker.isError)
-    return <AiQueryError error={tracker.error} retry={() => void tracker.refetch()} />;
+    return (
+      <AiQueryError
+        error={tracker.error}
+        retry={() => void tracker.refetch()}
+      />
+    );
   if (projects.isError)
-    return <AiQueryError error={projects.error} retry={() => void projects.refetch()} />;
+    return (
+      <AiQueryError
+        error={projects.error}
+        retry={() => void projects.refetch()}
+      />
+    );
 
   const project = projects.data.find((item) => item.id === projectId);
 
@@ -213,8 +223,8 @@ export function AiResearchSetupGate({
               Set up AI visibility
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              We’ll research your brand and find the most relevant topics to
-              monitor.
+              Generate and save editable prompts with OpenRouter, or research
+              your brand and start tracking with DataForSEO.
             </p>
           </div>
           {getErrorCode(start.error) === "INSUFFICIENT_CREDITS" ? (
@@ -259,8 +269,14 @@ export function AiResearchSetupGate({
               className="w-full"
               onClick={() => setManualSetup(true)}
             >
-              Set up manually — without DataForSEO
+              Manage prompts without tracking
             </Button>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Enter prompts yourself or generate drafts with OpenRouter.
+              Generation may use OpenRouter credits; drafts are only saved after
+              your review. No DataForSEO, baseline, or automatic tracking is
+              started.
+            </p>
             <Button
               size="lg"
               className="w-full"
@@ -269,7 +285,9 @@ export function AiResearchSetupGate({
                 overview.trim() ? saveOverview.mutate() : start.mutate()
               }
             >
-              {failed ? "Try again" : "Start research"}
+              {failed
+                ? "Retry research and tracking"
+                : "Research and track with DataForSEO"}
             </Button>
             <p className="text-xs leading-relaxed text-muted-foreground">
               {isEveryAppClientAuthMode()
