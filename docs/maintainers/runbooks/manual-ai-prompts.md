@@ -1,5 +1,9 @@
 # Manuelle AI-Prompts im Fork
 
+Der [abschließende Prüfbericht für PR #1](./manual-ai-prompts-final-qa.md) nennt
+den exakt getesteten Commit, die tatsächlich ausgeführten Befehle und den
+aktuellen technischen Merge-Befund.
+
 ## Verhalten und Grenzen
 
 Der manuelle Einstieg unter AI Visibility → „Manage prompts without tracking“
