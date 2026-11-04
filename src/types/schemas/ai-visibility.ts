@@ -70,7 +70,12 @@ export const aiTrackerPatchSchema = z.object({
 export const saveAiTrackerSchema = aiProjectSchema
   .extend(aiTrackerPatchSchema.shape)
   .extend({
-    startPaused: z.boolean().optional(),
+    startPaused: z
+      .boolean()
+      .optional()
+      .describe(
+        "Create a new tracker disabled, with no next check or baseline. Does not change an existing tracker’s schedule. Enabling tracking requires a separate explicit action.",
+      ),
   });
 export const estimateAiCostSchema = aiProjectSchema.extend({
   scheduleInterval: scheduleIntervalSchema

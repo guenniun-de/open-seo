@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
+import { useSuppressSeoSetupWarnings } from "@/client/layout/SeoSetupWarningContext";
 import { TrackerEditor, TrackerEditorMode } from "./TrackerEditor";
 import { useAiVisibilityTracker } from "./shared";
 import { DEFAULT_LOCATION_CODE } from "@/shared/keyword-locations";
@@ -47,14 +48,25 @@ function ManualTrackerSetup({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  useSuppressSeoSetupWarnings(true);
   const tracker = useAiVisibilityTracker(projectId);
   const projects = useQuery(projectsQueryOptions());
 
   if (tracker.isPending || projects.isPending) return <SkeletonPageContent />;
   if (tracker.isError)
-    return <AiQueryError error={tracker.error} retry={() => void tracker.refetch()} />;
+    return (
+      <AiQueryError
+        error={tracker.error}
+        retry={() => void tracker.refetch()}
+      />
+    );
   if (projects.isError)
-    return <AiQueryError error={projects.error} retry={() => void projects.refetch()} />;
+    return (
+      <AiQueryError
+        error={projects.error}
+        retry={() => void projects.refetch()}
+      />
+    );
 
   const project = projects.data.find((item) => item.id === projectId);
 
@@ -165,6 +177,22 @@ export function AiResearchSetupGate({
     // loadSetupResults only reads projectId, which keys this gate.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finishing]);
+  if (manualSetup)
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" onClick={() => setManualSetup(false)}>
+          Back to setup options
+        </Button>
+        <ManualTrackerSetup
+          projectId={projectId}
+          onClose={() => setManualSetup(false)}
+          onSaved={() => {
+            setManualSetup(false);
+            void refresh();
+          }}
+        />
+      </div>
+    );
   if (setup.isPending) return <SkeletonPageContent />;
   if (setup.isError)
     return (
@@ -213,8 +241,8 @@ export function AiResearchSetupGate({
               Set up AI visibility
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              We’ll research your brand and find the most relevant topics to
-              monitor.
+              Generate and save editable prompts with OpenRouter, or research
+              your brand and start tracking with DataForSEO.
             </p>
           </div>
           {getErrorCode(start.error) === "INSUFFICIENT_CREDITS" ? (
@@ -259,8 +287,14 @@ export function AiResearchSetupGate({
               className="w-full"
               onClick={() => setManualSetup(true)}
             >
-              Set up manually — without DataForSEO
+              Manage prompts without tracking
             </Button>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Enter prompts yourself or generate drafts with OpenRouter.
+              Generation may use OpenRouter credits; drafts are only saved after
+              your review. No DataForSEO, baseline, or automatic tracking is
+              started.
+            </p>
             <Button
               size="lg"
               className="w-full"
@@ -269,7 +303,9 @@ export function AiResearchSetupGate({
                 overview.trim() ? saveOverview.mutate() : start.mutate()
               }
             >
-              {failed ? "Try again" : "Start research"}
+              {failed
+                ? "Retry research and tracking"
+                : "Research and track with DataForSEO"}
             </Button>
             <p className="text-xs leading-relaxed text-muted-foreground">
               {isEveryAppClientAuthMode()
@@ -277,16 +313,6 @@ export function AiResearchSetupGate({
                 : "Research and a first run of your prompts use a small amount of usage credits."}
             </p>
           </div>
-          {manualSetup && (
-            <ManualTrackerSetup
-              projectId={projectId}
-              onClose={() => setManualSetup(false)}
-              onSaved={() => {
-                setManualSetup(false);
-                void refresh();
-              }}
-            />
-          )}
         </CardContent>
       </Card>
     </div>

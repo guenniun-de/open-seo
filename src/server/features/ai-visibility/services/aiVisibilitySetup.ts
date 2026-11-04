@@ -3,7 +3,7 @@ import type { SaveAiTrackerInput } from "@/types/schemas/ai-visibility";
 import { projectPatch } from "./aiVisibilityMutation";
 import { getTracker } from "./aiVisibilityState";
 
-/** Creates or edits tracking. A new tracker starts weekly, first check a week out. */
+/** Saves configuration only. startPaused opts new trackers out of the weekly default. */
 export async function saveTracker(input: SaveAiTrackerInput) {
   const { projectId, startPaused, ...patch } = input;
   const current = await repo.getConfiguration(projectId);

@@ -27,9 +27,13 @@ export function useTrackerSetupSave({
       scheduleWeekly: boolean;
     }) => {
       const result = await saveAiVisibilityTracker({
-        data: { projectId, ...accepted.patch, ...(startPaused ? { startPaused: true } : {}) },
+        data: {
+          projectId,
+          ...accepted.patch,
+          ...(startPaused ? { startPaused: true } : {}),
+        },
       });
-      if (!scheduleWeekly) return { state: result.state };
+      if (startPaused || !scheduleWeekly) return { state: result.state };
       try {
         // A first schedule also collects a baseline now.
         const scheduled = await setAiVisibilitySchedule({
